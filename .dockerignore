@@ -1,0 +1,15 @@
+node_modules
+.next
+.git
+.gitignore
+npm-debug.log*
+*.tsbuildinfo
+.env
+.env.local
+README.md
+DEPLOY.md
+presentations
+assets-placeholder/video
+Dockerfile
+.dockerignore
+docker-compose*.yml

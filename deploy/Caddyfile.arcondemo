@@ -1,0 +1,9 @@
+# Блок для Caddy, который уже обслуживает ваши домены на VPS (тот же, что у timetracker).
+# Добавьте его в существующий Caddyfile и перезагрузите Caddy:
+#   docker exec <caddy-контейнер> caddy reload --config /etc/caddy/Caddyfile
+#
+# Caddy сам получит и продлит TLS-сертификат Let's Encrypt для субдомена.
+# arcondemo-app — имя контейнера из docker-compose.prod.yml (должен быть в сети `edge`).
+arcondemo.tesmika.ru {
+    reverse_proxy arcondemo-app:3000
+}
