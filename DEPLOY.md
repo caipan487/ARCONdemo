@@ -1,78 +1,100 @@
-# Деплой ARCONdemo на Timeweb VPS (Docker + Caddy)
+# Деплой ARCONdemo на тот же VPS, что tesmika.ru и timetracker
 
-Витрина `arcondemo.tesmika.ru` разворачивается на **том же VPS**, что и `timetracker.tesmika.ru`,
-и работает за **уже запущенным Caddy** (общий reverse-proxy с авто-HTTPS). Своего Caddy контейнер
-ARCONdemo не поднимает — он подключается к общей Docker-сети `edge`, а Caddy получает новый
-site-блок для субдомена.
+Сервер (`201.24.56.22`) работает по схеме из runbook timetracker:
+**Nginx** (веб-сервер + reverse-proxy) + **pm2** (Node-процессы) + **certbot** (HTTPS).
+Не Docker. ARCONdemo разворачивается тем же способом, что timetracker, только на своём порту.
 
-Приложение статическое (демо-витрина), базы данных и переменных окружения не требует:
-адрес сайта уже зашит в код по умолчанию (`https://arcondemo.tesmika.ru`).
+- timetracker → pm2-процесс на `127.0.0.1:3000`, Nginx проксирует `timetracker.tesmika.ru`.
+- tesmika.ru → статика, Nginx отдаёт из `~/site/tesmika-site`.
+- **arcondemo → pm2-процесс на `127.0.0.1:3001`, Nginx проксирует `arcondemo.tesmika.ru`.**
 
----
-
-## 1. DNS (панель домена tesmika.ru)
-
-Добавьте запись, указывающую субдомен на тот же VPS, что и timetracker:
-
-```
-Тип: A     Имя: arcondemo     Значение: <IP вашего Timeweb VPS>
-```
-
-(или `AAAA`, если используете IPv6). Дождитесь распространения (обычно минуты).
-
-## 2. Общая сеть Caddy (один раз на сервере)
-
-Если сети `edge` ещё нет и существующий Caddy к ней не подключён:
-
-```bash
-docker network create edge
-docker network connect edge <имя-или-id caddy-контейнера timetracker>
-```
-
-> Проверить имя Caddy: `docker ps --format '{{.Names}}' | grep -i caddy`
-
-## 3. Код на сервер
-
-```bash
-git clone https://github.com/caipan487/ARCONdemo.git
-cd ARCONdemo
-```
-
-(обновление позже: `git pull`)
-
-## 4. Caddy: добавить субдомен
-
-Скопируйте блок из [`deploy/Caddyfile.arcondemo`](deploy/Caddyfile.arcondemo) в **существующий**
-Caddyfile вашего Caddy (там же, где блок timetracker) и перезагрузите Caddy:
-
-```bash
-docker exec <caddy-контейнер> caddy reload --config /etc/caddy/Caddyfile
-```
-
-## 5. Запуск контейнера ARCONdemo
-
-```bash
-docker compose -f docker-compose.prod.yml up -d --build
-```
-
-Проверка:
-
-```bash
-docker compose -f docker-compose.prod.yml logs -f app     # ждём "Ready"
-curl -I https://arcondemo.tesmika.ru                       # 200 OK
-```
+Приложение статическое (демо-витрина), базы данных и секретов не требует.
 
 ---
 
-## Обновление сайта
+## 1. DNS (панель reg.ru, где домен tesmika.ru)
 
-```bash
-git pull
-docker compose -f docker-compose.prod.yml up -d --build
+Добавить запись — на тот же IP, что и timetracker:
+
+```
+Тип: A   Имя (поддомен): arcondemo   Значение: 201.24.56.22
 ```
 
-## Альтернатива без общей сети
+`MX / SPF / DKIM` не трогать. Дождаться распространения (минуты).
 
-Если не хотите трогать сеть работающего Caddy — можно вместо шага 2 добавить сервис `app`
-из этого compose прямо в `docker-compose.prod.yml` timetracker (как ещё один сервис) и
-проксировать по имени сервиса. Но вариант с общей сетью `edge` не затрагивает стек timetracker.
+## 2. Код и запуск процесса (на сервере, под пользователем `ttp`)
+
+Репозиторий публичный — клонируется по HTTPS, ключ не нужен:
+
+```bash
+cd ~
+git clone https://github.com/caipan487/ARCONdemo.git arcondemo
+cd arcondemo
+npm ci
+npm run build
+PORT=3001 pm2 start "npm run start" --name arcondemo --time
+pm2 save
+```
+
+Проверка, что процесс поднялся на 3001:
+
+```bash
+pm2 status
+curl -I http://127.0.0.1:3001        # ожидаем ответ от Next (307/200)
+```
+
+## 3. Nginx: отдать субдомен (нужны права root/sudo)
+
+Создать `/etc/nginx/sites-available/arcondemo`:
+
+```nginx
+server {
+  listen 80; server_name arcondemo.tesmika.ru;
+  location / {
+    proxy_pass http://127.0.0.1:3001;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}
+```
+
+Включить и перезагрузить Nginx:
+
+```bash
+sudo ln -s /etc/nginx/sites-available/arcondemo /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+## 4. HTTPS (certbot)
+
+После того как DNS уже указывает на сервер:
+
+```bash
+sudo certbot --nginx -d arcondemo.tesmika.ru
+```
+
+Certbot сам добавит 443-редирект и автопродление.
+
+## 5. Проверка
+
+Открыть `https://arcondemo.tesmika.ru` — витрина ARCONdemo (RU/EN), зелёный замок.
+
+---
+
+## Обновление сайта в будущем
+
+```bash
+cd ~/arcondemo && git pull && npm ci && npm run build && pm2 reload arcondemo
+```
+
+## Заодно: обновить лендинг tesmika.ru (карточка ARCONdemo уже в репозитории)
+
+Правка лендинга с карточкой «Примеры работ» запушена в `Tesmika_Lending`, но на сервере
+станет видна после подтягивания статики:
+
+```bash
+cd ~/site && git pull        # каталог, откуда Nginx отдаёт tesmika.ru
+```
