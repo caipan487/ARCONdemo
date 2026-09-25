@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   DESIGN TOKENS — премиум-EPC (см. docs/design-system.md, D3)
+   Значения меняются под бренд; структура — нет.
+   Цвета в channel-формате "R G B" для Tailwind <alpha-value>.
+   ============================================================ */
+:root {
+  --color-bg: 10 14 20;          /* глубокий графит с синевой */
+  --color-surface: 16 22 31;     /* карточки на тон светлее */
+  --color-surface-2: 23 31 43;   /* приподнятые поверхности */
+  --color-text: 232 237 244;     /* near-white */
+  --color-muted: 145 158 175;    /* приглушённый холодный серый */
+  --color-border: 38 49 63;      /* тонкие разделители */
+  --color-accent: 74 140 208;    /* единственный акцент — навигационная синь */
+  --color-accent-soft: 138 190 232;
+
+  --container: 1200px;
+  --section-space: clamp(4.5rem, 9vw, 8.5rem);
+  --radius: 4px;
+  --transition-smooth: 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Светлая «полка» — контрастные секции на тёмной базе */
+.theme-light {
+  --color-bg: 244 246 249;
+  --color-surface: 255 255 255;
+  --color-surface-2: 237 241 246;
+  --color-text: 18 26 36;
+  --color-muted: 92 105 122;
+  --color-border: 214 221 230;
+  --color-accent: 32 92 156;
+  --color-accent-soft: 32 92 156;
+}
+
+@layer base {
+  * {
+    border-color: rgb(var(--color-border));
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    background-color: rgb(var(--color-bg));
+    color: rgb(var(--color-text));
+    font-family: var(--font-sans), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: rgb(var(--color-accent) / 0.28);
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-display), var(--font-sans), sans-serif;
+    font-weight: 600;
+    text-wrap: balance;
+  }
+  :focus-visible {
+    outline: 2px solid rgb(var(--color-accent));
+    outline-offset: 3px;
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-container px-5 lg:px-8;
+  }
+  .section {
+    padding-top: var(--section-space);
+    padding-bottom: var(--section-space);
+  }
+  /* Надзаголовок-кикер: uppercase, разрядка, с номерной чертой */
+  .kicker {
+    @apply inline-flex items-center gap-3 text-xs font-medium uppercase tracking-kicker text-muted;
+  }
+  .kicker::before {
+    content: '';
+    @apply inline-block h-px w-8 bg-accent;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded px-6 py-3 text-sm font-medium transition-colors duration-300;
+  }
+  .btn-primary {
+    @apply btn bg-accent text-white hover:bg-accent-soft hover:text-bg;
+  }
+  .btn-outline {
+    @apply btn border border-border text-text hover:border-accent hover:text-accent;
+  }
+  .link-underline {
+    @apply relative inline-flex items-center gap-2 text-sm font-medium text-text transition-colors hover:text-accent;
+  }
+  .card {
+    @apply rounded border border-border bg-surface transition-colors duration-300;
+  }
+  .hairline {
+    @apply h-px w-full bg-border;
+  }
+}
+
+/* Reveal-on-scroll (лёгкий, без библиотек) */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity var(--transition-smooth), transform var(--transition-smooth);
+  will-change: opacity, transform;
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .reveal { opacity: 1 !important; transform: none !important; transition: none; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

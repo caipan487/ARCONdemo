@@ -1,0 +1,12 @@
+# Деплой демо-версии сайта АРКОН на Netlify (для показа заказчику).
+# Реальный продакшн с приёмом заявок — на Timeweb VPS (РФ, 152-ФЗ), см. docs/decisions.md D2.
+
+[build]
+  command = "next build"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# Официальная поддержка Next.js на Netlify (SSR, middleware, next/image)
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
