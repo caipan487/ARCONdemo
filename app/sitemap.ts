@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { locales } from '@/lib/i18n/config';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://industrial.tesmika.ru';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://arcondemo.tesmika.ru';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return locales.map((locale) => ({

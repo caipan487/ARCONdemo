@@ -11,7 +11,7 @@ export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
 }
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://industrial.tesmika.ru';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://arcondemo.tesmika.ru';
 
 export async function generateMetadata({
   params,

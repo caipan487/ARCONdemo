@@ -16,7 +16,7 @@ interface PageHeroProps {
   image?: string;
 }
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://industrial.tesmika.ru';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://arcondemo.tesmika.ru';
 
 export function PageHero({ locale, kicker, title, lead, crumbs, image }: PageHeroProps) {
   const breadcrumbJsonLd = {
